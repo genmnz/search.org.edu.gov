@@ -1,4 +1,4 @@
-# Research Hub - Search All Possible .gov/.edu/.org
+# Researched Slash - Search All Possible .gov/.edu/.org
 
 [![Live Demo](https://img.shields.io/badge/Live%20Demo-Visit%20Now-blue?style=for-the-badge)](https://genmnz.github.io/search.org.edu.gov/)
 
