@@ -1,0 +1,596 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Research Hub - Search All Possible .gov/.edu/.org</title>
+        <link rel="stylesheet" href="style.css" />
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+        <link
+            href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@600;700;800&display=swap"
+            rel="stylesheet"
+        />
+        <script src="app.js" defer></script>
+        <script
+            src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"
+            defer
+        ></script>
+    </head>
+    <body x-data="searchApp" class="min-h-screen">
+        <!-- Navigation -->
+
+
+        <!-- Hero Section -->
+        <header class="hero-section">
+            <div class="hero-container">
+                <div class="hero-content">
+                    <h1 class="hero-title">Search All Possible .gov/.edu/.org</h1>
+                    <p class="hero-subtitle">
+                        Search across 50+ academic databases and repositories to
+                        find research papers, articles, and scholarly content in
+                        one place.
+                    </p>
+
+                    <!-- Search Box -->
+                    <section class="search-section" aria-labelledby="search-heading">
+                        <h2 id="search-heading" class="sr-only">Search</h2>
+                        <div class="search-container">
+                            <div class="search-input-wrapper">
+                                <div class="search-icon">
+                                    <svg
+                                        width="20"
+                                        height="20"
+                                        viewBox="0 0 24 24"
+                                        fill="none"
+                                        xmlns="http://www.w3.org/2000/svg"
+                                    >
+                                        <circle
+                                            cx="11"
+                                            cy="11"
+                                            r="8"
+                                            stroke="currentColor"
+                                            stroke-width="2"
+                                        />
+                                        <path
+                                            d="m21 21-4.35-4.35"
+                                            stroke="currentColor"
+                                            stroke-width="2"
+                                            stroke-linecap="round"
+                                            stroke-linejoin="round"
+                                        />
+                                    </svg>
+                                </div>
+                                <input
+                                    type="text"
+                                    x-model.debounce.500ms="query"
+                                    placeholder="Search academic papers, datasets, books..."
+                                    class="search-input"
+                                    autocomplete="off"
+                                />
+                            </div>
+                        </div>
+                                     <!-- Filters Sidebar -->
+                <aside class="filters-sidebar">
+                    <input type="checkbox" id="filters-toggle" class="filters-toggle-checkbox" x-ref="filtersToggle" />
+                    <div class="filters-header">
+                        <label for="filters-toggle" class="filters-toggle" x-show="!Object.keys(stats).length"
+                        style='display: flex;'>
+                            <svg
+                                width="20"
+                                height="20"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                xmlns="http://www.w3.org/2000/svg"
+                            >
+                                <path
+                                    d="M3 6H21M3 12H21M3 18H21"
+                                    stroke="currentColor"
+                                    stroke-width="2"
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                />
+                            </svg>
+                            filters
+                        </label>
+                    </div>
+
+                    <div class="filters-content">
+                        <div class="provider-actions">
+                            <button
+                                @click="selectAllProviders()"
+                                class="action-btn"
+                            >
+                                Select All
+                            </button>
+                            <button
+                                @click="unselectAllProviders()"
+                                class="action-btn secondary"
+                            >
+                                Clear All
+                            </button>
+                        </div>
+
+                        <ul class="provider-grid">
+                            <template x-for="provider in sortedProviders" :key="provider">
+                                <li class="provider-checkbox" :class="{'provider-failed': stats[provider] && !stats[provider].success && stats[provider].count === 0}">
+                                    <label>
+                                        <input type="checkbox" x-model="selectedProviders" :value="provider" class="checkbox-input" />
+                                        <div class="checkbox-custom"></div>
+                                        <span class="provider-name" x-text="provider"></span>
+                                        <span class="provider-count" x-show="stats[provider] && (stats[provider].success || stats[provider].count > 0)" x-text="stats[provider]?.count || 0"></span>
+                                        <template x-if="stats[provider] && !stats[provider].success && stats[provider].count === 0">
+                                            <svg class="failed-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                <circle cx="12" cy="12" r="10"></circle>
+                                                <line x1="12" y1="8" x2="12" y2="12"></line>
+                                                <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                                            </svg>
+                                        </template>
+                                    </label>
+                                </li>
+                            </template>
+                        </ul>
+                    </div>
+
+                    <label for="filters-toggle" class="filters-backdrop"></label>
+                </aside>
+
+                    </section>
+                </div>
+            </div>
+        </header>
+
+        <!-- Sticky Header with Stats and Filters Toggle -->
+        <header class="sticky-header" x-show="Object.keys(stats).length > 0">
+            <div class="sticky-header-container">
+                <ul class="nav-stats">
+                    <li class="stat-item">
+                        <span
+                            class="stat-number"
+                            x-text="Object.keys(stats).length"
+                        ></span>
+                        <span class="stat-label">Sources</span>
+                    </li>
+                    <li class="stat-item">
+                        <span
+                            class="stat-number"
+                            x-text="Object.values(stats).reduce((sum, provider) => sum + provider.count, 0)"
+                        ></span>
+                        <span class="stat-label">Results</span>
+                    </li>
+                </ul>
+                <label for="filters-toggle" class="filters-toggle-header">
+                    <svg
+                        width="20"
+                        height="20"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        xmlns="http://www.w3.org/2000/svg"
+                    >
+                        <path
+                            d="M3 6H21M3 12H21M3 18H21"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                        />
+                    </svg>
+                    <span>Filters</span>
+                </label>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <div class="content-container">
+   
+                <!-- Results Section -->
+                <section class="results-section">
+                    <!-- Loading State -->
+                    <div x-show="loading && results.length === 0" class="loading-state">
+                        <div class="loading-animation">
+                            <div class="loading-dots">
+                                <div class="dot"></div>
+                                <div class="dot"></div>
+                                <div class="dot"></div>
+                            </div>
+                        </div>
+                        <h3>Searching Academic Databases</h3>
+                        <p>
+                            Querying multiple sources for the most relevant
+                            results...
+                        </p>
+                    </div>
+
+                    <!-- Error State -->
+                    <div x-show="error && !loading" class="error-state">
+                        <div class="error-icon">
+                            <svg
+                                width="48"
+                                height="48"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                xmlns="http://www.w3.org/2000/svg"
+                            >
+                                <circle
+                                    cx="12"
+                                    cy="12"
+                                    r="10"
+                                    stroke="currentColor"
+                                    stroke-width="2"
+                                />
+                                <line
+                                    x1="12"
+                                    y1="8"
+                                    x2="12"
+                                    y2="12"
+                                    stroke="currentColor"
+                                    stroke-width="2"
+                                    stroke-linecap="round"
+                                />
+                                <line
+                                    x1="12"
+                                    y1="16"
+                                    x2="12.01"
+                                    y2="16"
+                                    stroke="currentColor"
+                                    stroke-width="2"
+                                    stroke-linecap="round"
+                                />
+                            </svg>
+                        </div>
+                        <h3>Search Error</h3>
+                        <p x-text="error"></p>
+                        <button @click="search()" class="retry-btn">
+                            Try Again
+                        </button>
+                    </div>
+
+                    <!-- Results Header -->
+                    <header
+                        x-show="results.length > 0"
+                        class="results-header"
+                    >
+                        <h2 class="results-title">
+                            Showing <span x-text="results.length"></span> results
+                            <span x-show="query" class="search-query"
+                                >for "<span x-text="query"></span>"</span
+                            >
+                            <span x-show="loading" class="searching-indicator"> (searching...)</span>
+                        </h2>
+                    </header>
+
+                    <!-- Results Grid -->
+                    <ul
+                        x-show="results.length > 0"
+                        class="results-grid"
+                    >
+                        <template
+                            x-for="(result, index) in results"
+                            :key="index"
+                        >
+                            <li
+                                class="result-card"
+                                x-data="{ expanded: false }"
+                            >
+                                <!-- Card Image -->
+                                <div class="card-image" x-show="result.image">
+                                    <picture>
+                                        <img
+                                            :src="result.image"
+                                            :alt="result.title + ' - ' + result.source"
+                                            @error="$event.target.closest('.card-image').style.display='none'"
+                                            loading="lazy"
+                                        />
+                                    </picture>
+                                </div>
+
+                                <!-- Card Header -->
+                                <header class="card-header">
+                                    <div class="source-info">
+                                        <span
+                                            class="source-badge"
+                                            x-text="result.source"
+                                        ></span>
+                                        <span
+                                            x-show="result.year"
+                                            class="year-badge"
+                                            x-text="result.year"
+                                        ></span>
+                                    </div>
+                                    <h3
+                                        class="result-title"
+                                        x-text="result.title || 'Untitled'"
+                                    ></h3>
+                                </header>
+
+                                <!-- Card Body -->
+                                <div class="card-body">
+                                    <div
+                                        class="author-section"
+                                        x-show="result.author && result.author !== 'Unknown'"
+                                        x-data="{ expanded: false }"
+                                    >
+                                        <svg
+                                            width="16"
+                                            height="16"
+                                            viewBox="0 0 24 24"
+                                            fill="none"
+                                            xmlns="http://www.w3.org/2000/svg"
+                                        >
+                                            <path
+                                                d="M20 21V19C20 17.9391 19.5786 16.9217 18.8284 16.1716C18.0783 15.4214 17.0609 15 16 15H8C6.93913 15 5.92172 15.4214 5.17157 16.1716C4.42143 16.9217 4 17.9391 4 19V21"
+                                                stroke="currentColor"
+                                                stroke-width="1.5"
+                                                stroke-linecap="round"
+                                                stroke-linejoin="round"
+                                            />
+                                            <circle
+                                                cx="12"
+                                                cy="7"
+                                                r="4"
+                                                stroke="currentColor"
+                                                stroke-width="1.5"
+                                                stroke-linecap="round"
+                                                stroke-linejoin="round"
+                                            />
+                                        </svg>
+                                        <div class="author-list">
+                                            <span x-html="getAuthorText(result.author, expanded)"></span>
+                                            <button
+                                                x-show="result.author && result.author.split(',').length > 2"
+                                                @click="expanded = !expanded"
+                                                class="expand-authors-btn"
+                                                x-text="expanded ? 'show less' : '...'"
+                                            ></button>
+                                        </div>
+                                    </div>
+
+                                    <div
+                                        class="description-section"
+                                        x-show="result.description || result.abstract"
+                                    >
+                                        <p
+                                            class="description-text"
+                                            x-text="expanded ? (result.description || result.abstract) : (result.description || result.abstract || '').slice(0, 200) + ((result.description || result.abstract || '').length > 200 ? '...' : '')"
+                                            :class="{ 'line-clamp': !expanded }"
+                                        ></p>
+                                        <button
+                                            x-show="(result.description || result.abstract || '').length > 200"
+                                            @click="expanded = !expanded"
+                                            class="expand-btn"
+                                            x-text="expanded ? 'Show Less' : 'Read More'"
+                                        ></button>
+                                    </div>
+
+                                    <!-- Metadata Pills -->
+                                    <div class="metadata-section">
+                                        <div class="metadata-pills">
+                                            <span
+                                                x-show="result.type"
+                                                class="pill type-pill"
+                                                x-text="result.type"
+                                            ></span>
+                                            <span
+                                                x-show="result.publisher"
+                                                class="pill publisher-pill"
+                                                x-text="result.publisher"
+                                            ></span>
+                                            <span
+                                                x-show="result.journal || result.journal_name"
+                                                class="pill journal-pill"
+                                                x-text="result.journal || result.journal_name"
+                                            ></span>
+                                            <span
+                                                x-show="result.is_oa"
+                                                class="pill access-pill open-access"
+                                                >Open Access</span
+                                            >
+                                            <span
+                                                x-show="result.is_oa === false"
+                                                class="pill access-pill closed-access"
+                                                >Closed Access</span
+                                            >
+                                            <span
+                                                x-show="result.cited_by_count !== undefined"
+                                                class="pill citation-pill"
+                                            >
+                                                <svg
+                                                    width="12"
+                                                    height="12"
+                                                    viewBox="0 0 24 24"
+                                                    fill="none"
+                                                    xmlns="http://www.w3.org/2000/svg"
+                                                >
+                                                    <path
+                                                        d="M14 2H6C5.46957 2 4.96086 2.21071 4.58579 2.58579C4.21071 2.96086 4 3.46957 4 4V20C4 20.5304 4.21071 21.0391 4.58579 21.4142C4.96086 21.7893 5.46957 22 6 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V8L14 2Z"
+                                                        stroke="currentColor"
+                                                        stroke-width="1.5"
+                                                        stroke-linecap="round"
+                                                        stroke-linejoin="round"
+                                                    />
+                                                    <polyline
+                                                        points="14,2 14,8 20,8"
+                                                        stroke="currentColor"
+                                                        stroke-width="1.5"
+                                                        stroke-linecap="round"
+                                                        stroke-linejoin="round"
+                                                    />
+                                                </svg>
+                                                <span
+                                                    x-text="result.cited_by_count + ' citations'"
+                                                ></span>
+                                            </span>
+                                            <span
+                                                x-show="result.relevance_score && result.relevance_score > 0"
+                                                class="pill score-pill"
+                                            >
+                                                Score:
+                                                <span
+                                                    x-text="result.relevance_score ? result.relevance_score.toFixed(2) : 'N/A'"
+                                                ></span>
+                                            </span>
+                                        </div>
+
+                                        <!-- Tags/Keywords -->
+                                        <div
+                                            x-show="result.keywords || result.subjects || result.tags || result.topics || result.concepts"
+                                            class="tags-section"
+                                        >
+                                            <div class="tags-container">
+                                                <template
+                                                    x-for="(tag, index) in [...new Set([].concat(result.keywords || []).concat(result.subjects || []).concat(result.tags || []).concat(result.topics || []).concat(result.concepts || []))].slice(0, 6)"
+                                                    :key="index"
+                                                >
+                                                    <span
+                                                        class="tag"
+                                                        x-text="tag"
+                                                    ></span>
+                                                </template>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Card Footer -->
+                                <footer class="card-footer">
+                                    <div class="footer-left">
+                                        <span
+                                            x-show="result.doi"
+                                            class="doi-info"
+                                        >
+                                            DOI:
+                                            <a
+                                                :href="'https://doi.org/' + result.doi"
+                                                target="_blank"
+                                                rel="noopener"
+                                                x-text="result.doi"
+                                                class="doi-link"
+                                            ></a>
+                                        </span>
+                                    </div>
+                                    <a
+                                        :href="result.link"
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        class="view-link"
+                                    >
+                                        <span>View Source</span>
+                                        <svg
+                                            width="16"
+                                            height="16"
+                                            viewBox="0 0 24 24"
+                                            fill="none"
+                                            xmlns="http://www.w3.org/2000/svg"
+                                        >
+                                            <path
+                                                d="M18 13V19C18 19.5304 17.7893 20.0391 17.4142 20.4142C17.0391 20.7893 16.5304 21 16 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V8C3 7.46957 3.21071 6.96086 3.58579 6.58579C3.96086 6.21071 4.46957 6 5 6H11"
+                                                stroke="currentColor"
+                                                stroke-width="2"
+                                                stroke-linecap="round"
+                                                stroke-linejoin="round"
+                                            />
+                                            <path
+                                                d="M15 3H21V9"
+                                                stroke="currentColor"
+                                                stroke-width="2"
+                                                stroke-linecap="round"
+                                                stroke-linejoin="round"
+                                            />
+                                            <path
+                                                d="M10 14L21 3"
+                                                stroke="currentColor"
+                                                stroke-width="2"
+                                                stroke-linecap="round"
+                                                stroke-linejoin="round"
+                                            />
+                                        </svg>
+                                    </a>
+                                </footer>
+                            </li>
+                        </template>
+                    </ul>
+
+                    <!-- Show More Button -->
+                    <div
+                        x-show="results.length > 0 && hasMoreResults"
+                        class="show-more-container"
+                    >
+                        <button
+                            @click="showMore()"
+                            class="show-more-btn"
+                        >
+                            <span>Show More Results</span>
+                            <svg
+                                width="16"
+                                height="16"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                xmlns="http://www.w3.org/2000/svg"
+                            >
+                                <path
+                                    d="M6 9L12 15L18 9"
+                                    stroke="currentColor"
+                                    stroke-width="2"
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                />
+                            </svg>
+                        </button>
+                    </div>
+
+                    <!-- Empty State -->
+                    <div
+                        x-show="!loading && !error && query && results.length === 0"
+                        class="empty-state"
+                    >
+                        <div class="empty-icon">
+                            <svg
+                                width="64"
+                                height="64"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                xmlns="http://www.w3.org/2000/svg"
+                            >
+                                <circle
+                                    cx="11"
+                                    cy="11"
+                                    r="8"
+                                    stroke="currentColor"
+                                    stroke-width="2"
+                                />
+                                <path
+                                    d="m21 21-4.35-4.35"
+                                    stroke="currentColor"
+                                    stroke-width="2"
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                />
+                            </svg>
+                        </div>
+                        <h3>No Results Found</h3>
+                        <p>
+                            Try adjusting your search terms or selecting
+                            different data sources.
+                        </p>
+                    </div>
+
+                    <!-- Initial State -->
+                    <div
+                        x-show="!query && !loading && results.length === 0"
+                        class="initial-state"
+                    >
+                        <div class="initial-content">
+                            <h3>Start Your Research</h3>
+                            <p>
+                                Enter a search term above to discover academic
+                                papers, books, and datasets from leading
+                                repositories.
+                            </p>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </main>
+    </body>
+</html>
