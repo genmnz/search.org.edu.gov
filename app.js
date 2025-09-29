@@ -1259,21 +1259,6 @@ const API_LIST = [
       })) || [],
   },
   {
-    name: "JSTOR Open Content",
-    getUrl: (q) =>
-      `https://www.jstor.org/api/labs-search-service/open/search?query=${encodeURIComponent(q)}&page=1&limit=${maxResults}`,
-    normalize: (data) =>
-      data.results?.map((d) => ({
-        title: d.title || "Untitled",
-        author: d.author?.join(", ") || "Unknown",
-        year: d.published_year,
-        abstract: d.snippet?.[0] || "",
-        source: "JSTOR Open Content",
-        link: `https://www.jstor.org/stable/${d.id}`,
-        doi: d.doi,
-      })) || [],
-  },
-  {
     name: "Dryad",
     getUrl: (q) =>
       `https://datadryad.org/api/v2/search?query=${encodeURIComponent(q)}&per_page=${maxResults}`,
